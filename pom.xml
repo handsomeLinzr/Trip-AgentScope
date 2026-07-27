@@ -21,7 +21,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <agentscope.version>1.0.8</agentscope.version>
         <spring-boot.version>4.0.4</spring-boot.version>
-        <logback.version>1.5.25</logback.version>
+        <project.version>1.0-SNAPSHOT</project.version>
     </properties>
 
 
@@ -66,12 +66,6 @@
             <groupId>io.agentscope</groupId>
             <artifactId>agentscope-spring-boot-starter</artifactId>
             <version>${agentscope.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
         </dependency>
 
         <!-- agentscope 的 nacos 依赖 -->
