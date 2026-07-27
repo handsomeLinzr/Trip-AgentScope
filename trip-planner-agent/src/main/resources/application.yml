@@ -1,0 +1,15 @@
+server:
+  port: 8202
+agentscope:
+#  dashscope:
+#    api-key: ${AGENT_SCOPE_API_KEY}
+#  agent:
+#    name: my-assistant
+  a2a:
+    server:
+      enabled: true
+#      card:
+#        name: My Assistant
+#        description: 基于 AgentScope 的智能助手
+    nacos:
+      server-addr: 127.0.0.1:8848
