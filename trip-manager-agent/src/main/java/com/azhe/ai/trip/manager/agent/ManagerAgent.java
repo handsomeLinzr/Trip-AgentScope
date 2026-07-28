@@ -1,0 +1,82 @@
+package com.azhe.ai.trip.manager.agent;
+
+import com.azhe.ai.commons.utils.AgentBuilderUtils;
+import com.azhe.ai.trip.manager.hook.TripHook;
+import com.azhe.ai.trip.manager.plan.TripPlan;
+import io.agentscope.core.ReActAgent;
+import io.agentscope.core.agent.Event;
+import io.agentscope.core.agent.EventType;
+import io.agentscope.core.hook.Hook;
+import io.agentscope.core.message.ContentBlock;
+import io.agentscope.core.message.Msg;
+import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.model.DashScopeChatModel;
+import io.agentscope.core.plan.PlanNotebook;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+import java.util.function.Function;
+
+/**
+ * @author linzherong
+ * @date 2026/7/28 01:14
+ */
+public class ManagerAgent {
+
+    // 智能体
+    private ReActAgent agent;
+    // 计划
+    private PlanNotebook planNotebook = new TripPlan().getPlan();
+    // 回调事件拦截器
+    private Hook hook = new TripHook();
+
+    /**
+     * Create a manager agent that coordinates travel planning and route-making subtasks.
+     *
+     *
+     *  无论用户的问题多么简单，每次都必须创建并调用以下两个子任务：
+     * 1. trip-planner-agent：负责行程规划，包括旅行天数安排、景点、餐饮、住宿和注意事项。
+     * 2. route-making-agent：负责路线规划，包括往返交通、市内通勤、线路顺序、预计耗时和换乘建议。
+     * 执行规则：
+     * - 用户提示词只描述旅程需求；不得要求用户指定子 Agent、任务拆分方式或输出格式。
+     * - 必须先调用 trip-planner-agent，再调用 route-making-agent；不得跳过任一子 Agent。
+     * - 每个子任务都必须明确写出调用的 Agent 名称及其负责内容。
+     * - 仅在两个子任务均完成后，才能输出整合后的旅行建议。
+     * 最终回答必须严格按以下结构组织：
+     * 1. 【子任务 1｜调用 Agent：trip-planner-agent】说明其规划结果。
+     * 2. 【子任务 2｜调用 Agent：route-making-agent】说明其路线结果。
+     * 3. 【主管整合】输出可直接执行的完整旅程方案。
+     */
+    public ManagerAgent() {
+        agent = AgentBuilderUtils.getReActAgentBuilder("managerAgent", "主管Agent，擅长对问题进行拆分并分发给子Agent")
+                .sysPrompt(
+                        """
+                        你是主管旅行智能体，负责接收用户的旅程问题、拆分任务、协调子 Agent，并整合最终答案。
+                        """
+                )
+                .planNotebook(planNotebook)
+                .hook(hook)
+                .build();
+    }
+
+    /**
+     * Execute a travel request through the manager agent.
+     *
+     * @param prompt travel question submitted by the user
+     */
+    public void run(String prompt) {
+        AgentBuilderUtils.responseAgentStream(agent, prompt)
+                .doOnNext(event -> System.out.println(event.getMessage().getTextContent()))
+                .onErrorResume(new Function<Throwable, Publisher<? extends Event>>() {
+                    @Override
+                    public Publisher<? extends Event> apply(Throwable throwable) {
+                        return Flux.just(new Event(EventType.AGENT_RESULT, Msg.builder()
+                                .content(List.of(TextBlock.builder()
+                                        .text(throwable.getMessage()).build()))
+                                .build(), true));
+                    }
+                }).blockLast();
+    }
+
+}
