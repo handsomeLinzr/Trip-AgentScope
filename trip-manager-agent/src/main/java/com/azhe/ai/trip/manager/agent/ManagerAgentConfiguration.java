@@ -64,6 +64,7 @@ public class ManagerAgentConfiguration {
                 .sysPrompt(
                         """
                         你是主管旅行智能体，负责接收用户的旅程问题、拆分任务、协调子 Agent，并整合最终答案。
+                        ## 你不需要有语言大模型的记忆能力，请根据当前的传入的对话进行回答即可
                         """
                 )
                 .planNotebook(planNotebook)
@@ -71,6 +72,20 @@ public class ManagerAgentConfiguration {
                 .toolkit(toolkit)
                 .build();
     }
+
+
+    @Bean
+    public ReActAgent assistant(RemoteAgentTool remoteAgentTool) {
+
+        return agentBuilderUtils.getReActAgentBuilder("assistant", "擅长进行思考和智能对话")
+                .sysPrompt(
+                        """
+                        你是一个AI智能助手
+                        """
+                )
+                .build();
+    }
+
 
     /**
      * Execute a travel request through the manager agent.
