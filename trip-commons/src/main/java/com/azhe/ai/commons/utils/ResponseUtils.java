@@ -48,4 +48,13 @@ public class ResponseUtils {
         );
     }
 
+    /**
+     * agent流式响应
+     * @param agent
+     * @param msgs
+     */
+    public static Flux<Event> responseAgentStream(ReActAgent agent, List<Msg> msgs) {
+        return agent.stream(msgs);
+    }
+
 }

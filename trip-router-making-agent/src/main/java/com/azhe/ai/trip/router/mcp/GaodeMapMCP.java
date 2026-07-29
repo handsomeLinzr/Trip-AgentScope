@@ -17,7 +17,7 @@ public class GaodeMapMCP {
     private McpClientWrapper gaodeMapMCPWrapper;
 
     // 创建高德地图 mcp
-    public McpClientWrapper getInstance() {
+    public McpClientWrapper getInstance(String gaodeMcpUrl) {
         if (init) {
             return gaodeMapMCPWrapper;
         }
@@ -25,7 +25,7 @@ public class GaodeMapMCP {
             if (!init) {
                 // 注册高德地图MCP
                 gaodeMapMCPWrapper = McpClientBuilder.create("gaodeMap-mcp")
-                        .sseTransport("https://mcp.api-inference.modelscope.net/d4ed63458d2c4b/sse")
+                        .sseTransport(gaodeMcpUrl)
                         .buildAsync()
                         .timeout(Duration.ofSeconds(120))
                         .block();

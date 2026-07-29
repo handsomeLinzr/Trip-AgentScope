@@ -1,6 +1,5 @@
 package com.azhe.ai.trip.router;
 
-import com.azhe.ai.trip.router.agent.RouterMakingAgentConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

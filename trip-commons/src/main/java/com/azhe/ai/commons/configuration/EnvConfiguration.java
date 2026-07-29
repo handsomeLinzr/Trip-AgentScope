@@ -18,4 +18,7 @@ public class EnvConfiguration {
     @Value("${NACOS_URL}")
     private String nacosUrl;
 
+    @Value("${GAODE_MCP_URL}")
+    private String gaodeMcpUrl;
+
 }

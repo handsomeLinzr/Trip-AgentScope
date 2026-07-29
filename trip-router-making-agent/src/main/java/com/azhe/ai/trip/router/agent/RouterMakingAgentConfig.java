@@ -1,5 +1,6 @@
 package com.azhe.ai.trip.router.agent;
 
+import com.azhe.ai.commons.configuration.EnvConfiguration;
 import com.azhe.ai.commons.hook.PrintHook;
 import com.azhe.ai.commons.utils.AgentBuilderUtils;
 import com.azhe.ai.trip.router.mcp.GaodeMapMCP;
@@ -22,13 +23,14 @@ public class RouterMakingAgentConfig {
     @Resource
     private AgentBuilderUtils agentBuilderUtils;
 
+
     @Bean
-    public ReActAgent routerMakingAgent() {
+    public ReActAgent routerMakingAgent(EnvConfiguration env) {
 
         GaodeMapMCP gaodeMcp = new GaodeMapMCP();
         Toolkit toolkit = new Toolkit();
         log.info("==================高德地图mcp工具注册中=======================");
-        toolkit.registerMcpClient(gaodeMcp.getInstance()).block();
+        toolkit.registerMcpClient(gaodeMcp.getInstance(env.getGaodeMcpUrl())).block();
         log.info("==================高德地图mcp工具注册完成=======================");
 
         return agentBuilderUtils.getReActAgentBuilder(
