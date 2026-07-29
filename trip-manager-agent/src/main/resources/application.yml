@@ -1,2 +1,5 @@
 server:
   port: 8205
+spring:
+  config:
+    import: optional:file:.env[.properties]

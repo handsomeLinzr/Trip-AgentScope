@@ -6,3 +6,6 @@ agentscope:
       enabled: true
     nacos:
       server-addr: 127.0.0.1:8848
+spring:
+  config:
+    import: optional:file:.env[.properties]

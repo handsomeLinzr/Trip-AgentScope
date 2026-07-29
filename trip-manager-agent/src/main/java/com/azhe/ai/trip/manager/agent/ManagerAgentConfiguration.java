@@ -1,18 +1,22 @@
 package com.azhe.ai.trip.manager.agent;
 
 import com.azhe.ai.commons.utils.AgentBuilderUtils;
+import com.azhe.ai.commons.utils.ResponseUtils;
 import com.azhe.ai.trip.manager.hook.TripHook;
 import com.azhe.ai.trip.manager.plan.TripPlan;
+import com.azhe.ai.trip.manager.tools.RemoteAgentTool;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.agent.Event;
 import io.agentscope.core.agent.EventType;
 import io.agentscope.core.hook.Hook;
-import io.agentscope.core.message.ContentBlock;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.TextBlock;
-import io.agentscope.core.model.DashScopeChatModel;
 import io.agentscope.core.plan.PlanNotebook;
+import io.agentscope.core.tool.Toolkit;
+import jakarta.annotation.Resource;
 import org.reactivestreams.Publisher;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -22,10 +26,12 @@ import java.util.function.Function;
  * @author linzherong
  * @date 2026/7/28 01:14
  */
-public class ManagerAgent {
+@Configuration
+public class ManagerAgentConfiguration {
 
-    // 智能体
-    private ReActAgent agent;
+    @Resource
+    private AgentBuilderUtils agentBuilderUtils;
+
     // 计划
     private PlanNotebook planNotebook = new TripPlan().getPlan();
     // 回调事件拦截器
@@ -48,8 +54,13 @@ public class ManagerAgent {
      * 2. 【子任务 2｜调用 Agent：route-making-agent】说明其路线结果。
      * 3. 【主管整合】输出可直接执行的完整旅程方案。
      */
-    public ManagerAgent() {
-        agent = AgentBuilderUtils.getReActAgentBuilder("managerAgent", "主管Agent，擅长对问题进行拆分并分发给子Agent")
+    @Bean
+    public ReActAgent managerAgent(RemoteAgentTool remoteAgentTool) {
+
+        Toolkit toolkit = new Toolkit();
+        toolkit.registerTool(remoteAgentTool);
+
+        return agentBuilderUtils.getReActAgentBuilder("managerAgent", "主管Agent，擅长对问题进行拆分并分发给子Agent")
                 .sysPrompt(
                         """
                         你是主管旅行智能体，负责接收用户的旅程问题、拆分任务、协调子 Agent，并整合最终答案。
@@ -57,6 +68,7 @@ public class ManagerAgent {
                 )
                 .planNotebook(planNotebook)
                 .hook(hook)
+                .toolkit(toolkit)
                 .build();
     }
 
@@ -66,17 +78,17 @@ public class ManagerAgent {
      * @param prompt travel question submitted by the user
      */
     public void run(String prompt) {
-        AgentBuilderUtils.responseAgentStream(agent, prompt)
-                .doOnNext(event -> System.out.println(event.getMessage().getTextContent()))
-                .onErrorResume(new Function<Throwable, Publisher<? extends Event>>() {
-                    @Override
-                    public Publisher<? extends Event> apply(Throwable throwable) {
-                        return Flux.just(new Event(EventType.AGENT_RESULT, Msg.builder()
-                                .content(List.of(TextBlock.builder()
-                                        .text(throwable.getMessage()).build()))
-                                .build(), true));
-                    }
-                }).blockLast();
+//        ResponseUtils.responseAgentStream(agent, prompt)
+//                .doOnNext(event -> System.out.println(event.getMessage().getTextContent()))
+//                .onErrorResume(new Function<Throwable, Publisher<? extends Event>>() {
+//                    @Override
+//                    public Publisher<? extends Event> apply(Throwable throwable) {
+//                        return Flux.just(new Event(EventType.AGENT_RESULT, Msg.builder()
+//                                .content(List.of(TextBlock.builder()
+//                                        .text(throwable.getMessage()).build()))
+//                                .build(), true));
+//                    }
+//                }).blockLast();
     }
 
 }

@@ -1,5 +1,6 @@
 package com.azhe.ai.trip.router;
 
+import com.azhe.ai.trip.router.agent.RouterMakingAgentConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -7,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author linzherong
  * @date 2026/7/28 00:20
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.azhe.ai.commons","com.azhe.ai.trip.router"})
 public class RouterApplication {
 
     public static void main(String[] args) {
