@@ -28,7 +28,7 @@ public class TripAgentWrapper {
     private final AtomicReference<UsageState> usageState = new AtomicReference<>(UsageState.IDLE);
 
     // 会话最近一次结束使用的时间。
-    private LocalDateTime lastUsed = LocalDateTime.now();
+    private volatile LocalDateTime lastUsed = LocalDateTime.now();
 
     /**
      * 原子地尝试占用当前会话。

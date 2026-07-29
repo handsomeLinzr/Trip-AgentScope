@@ -1,9 +1,9 @@
 package com.azhe.ai.commons.utils;
 
-import com.azhe.ai.commons.configuration.EnvConfiguration;
 import com.azhe.ai.commons.domain.TripAgentWrapper;
 import io.agentscope.core.ReActAgent;
 import io.agentscope.core.memory.InMemoryMemory;
+import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
@@ -11,8 +11,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
 
 /**
  * @author linzherong
@@ -37,16 +40,47 @@ public class TripAgentWrapperUtils {
     // 防止多个请求同时发起重复的缓存清理任务。
     private final AtomicBoolean cleaning = new AtomicBoolean(false);
 
+    // 独占执行缓存清理任务，避免占用公共线程池。
+    private final ExecutorService cleanupExecutor = Executors.newSingleThreadExecutor(
+            Thread.ofPlatform().daemon(true).name("trip-agent-cleanup-", 0).factory());
+
     /**
      * 通过会话标识获取智能体包装对象。
      *
      * @param sessionId 会话标识
      */
     public TripAgentWrapper getTripAgentWrapper(String sessionId) {
+        return wrapperMap.computeIfAbsent(sessionId, this::createTripAgentWrapper);
+    }
 
-        if (wrapperMap.containsKey(sessionId)) {
-            return wrapperMap.get(sessionId);
+    /**
+     * 原子地获取并占用会话对应的智能体。
+     *
+     * @param sessionId 会话标识
+     * @return 已占用的智能体包装对象；会话正被其他请求使用时为空
+     */
+    public Optional<TripAgentWrapper> acquireTripAgentWrapper(String sessionId) {
+        while (true) {
+            TripAgentWrapper tripAgentWrapper = getTripAgentWrapper(sessionId);
+            // 成功从空闲状态切换到请求使用状态后返回。
+            if (tripAgentWrapper.tryStartUsing()) {
+                return Optional.of(tripAgentWrapper);
+            }
+            // 清理任务正在移除旧对象时，重新获取当前会话的包装对象。
+            if (tripAgentWrapper.isCleaning()) {
+                Thread.onSpinWait();
+                continue;
+            }
+            return Optional.empty();
         }
+    }
+
+    /**
+     * 创建并初始化会话专属的智能体包装对象。
+     *
+     * @param sessionId 会话标识
+     */
+    private TripAgentWrapper createTripAgentWrapper(String sessionId) {
         TripAgentWrapper tripAgentWrapper = new TripAgentWrapper();
         // 创建智能体
         ReActAgent agent = agentBuilderUtils.getReActAgentBuilder("streamAgent", "个人AI助理")
@@ -62,8 +96,6 @@ public class TripAgentWrapperUtils {
         tripAgentWrapper.setAgent(agent);
         tripAgentWrapper.setHistory(new ArrayList<>(20));
         tripAgentWrapper.setSessionId(sessionId);
-        // 存放到容器
-        wrapperMap.put(sessionId, tripAgentWrapper);
         return tripAgentWrapper;
     }
 
@@ -76,15 +108,19 @@ public class TripAgentWrapperUtils {
             return;
         }
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                // 清理线程
-                cleanupExpiredWrappers();
-            } finally {
-                // 无论清理任务是否异常，都允许后续请求再次触发清理。
-                cleaning.set(false);
-            }
-        });
+        try {
+            cleanupExecutor.execute(() -> {
+                try {
+                    cleanupExpiredWrappers();
+                } finally {
+                    // 无论清理任务是否异常，都允许后续请求再次触发清理。
+                    cleaning.set(false);
+                }
+            });
+        } catch (RejectedExecutionException exception) {
+            // 应用关闭期间无法提交任务时，恢复触发标记。
+            cleaning.set(false);
+        }
     }
 
     /**
@@ -136,6 +172,14 @@ public class TripAgentWrapperUtils {
                 return;
             }
         }
+    }
+
+    /**
+     * 关闭专用的会话清理线程。
+     */
+    @PreDestroy
+    public void shutdownCleanupExecutor() {
+        cleanupExecutor.shutdown();
     }
 
 }

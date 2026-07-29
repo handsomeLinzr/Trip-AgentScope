@@ -24,6 +24,7 @@ import reactor.core.publisher.Sinks;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -167,25 +168,15 @@ public class ChatController {
         // 异步回收已过期的空闲会话，避免缓存持续增长。
         tripAgentWrapperUtils.cleanupExpiredWrappersAsync();
 
-        TripAgentWrapper tripAgentWrapper;
-        while (true) {
-            // 获取会话对应的最新包装对象。
-            tripAgentWrapper = tripAgentWrapperUtils.getTripAgentWrapper(sessionId);
-            // 仅在会话空闲时原子地占用智能体，避免并发请求同时通过状态检查。
-            if (tripAgentWrapper.tryStartUsing()) {
-                break;
-            }
-            // 清理任务正在移除旧对象时，重新获取包装对象后再尝试占用。
-            if (tripAgentWrapper.isCleaning()) {
-                Thread.onSpinWait();
-                continue;
-            }
+        // 原子地获取并占用会话专属智能体，工具类会自动避开正在清理的旧对象。
+        Optional<TripAgentWrapper> tripAgentWrapperOptional = tripAgentWrapperUtils.acquireTripAgentWrapper(sessionId);
+        if (tripAgentWrapperOptional.isEmpty()) {
             // 只有被其他用户请求占用时，才提示调用端等待。
             return Flux.just("当前智能体正在运行中，请等待结束后再提问！");
         }
 
         // 固定本次请求成功占用的包装对象，供响应流的回调安全引用。
-        TripAgentWrapper activeTripAgentWrapper = tripAgentWrapper;
+        TripAgentWrapper activeTripAgentWrapper = tripAgentWrapperOptional.get();
         // 构建历史对话
         List<Msg> msgs = buildMessages(prompt, activeTripAgentWrapper.getHistory());
         return ResponseUtils.responseAgentStream(activeTripAgentWrapper.getAgent(), msgs)
