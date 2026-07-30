@@ -2,6 +2,7 @@ package com.azhe.ai.trip.manager.controller;
 
 import com.alibaba.nacos.common.utils.StringUtils;
 import com.azhe.ai.commons.domain.TripAgentWrapper;
+import com.azhe.ai.commons.response.ResponseSchema;
 import com.azhe.ai.commons.utils.ResponseUtils;
 import com.azhe.ai.commons.utils.TripAgentWrapperUtils;
 import com.azhe.ai.trip.manager.hook.TripHook;
@@ -66,7 +67,7 @@ public class ChatController {
      * @return
      */
     @GetMapping("/trip")
-    public Flux<String> getTrip(@RequestParam("prompt") String prompt,
+    public ResponseSchema getTrip(@RequestParam("prompt") String prompt,
                                 HttpServletResponse response,
                                 @RequestParam(value = "sessionId", required = false) String sessionId) {
         response.setCharacterEncoding("utf-8");
@@ -91,39 +92,45 @@ public class ChatController {
             }
         }
         // 响应内容
-        Flux<String> result = ResponseUtils.responseAgentStream(managerAgent, out)
-                .mapNotNull(new Function<Event, String>() {
-                    boolean thinking = true;
-                    @Override
-                    public String apply(Event event) {
-                        if (event.getType().equals(EventType.REASONING) && !event.isLast()) {
-                            ContentBlock contentBlock = event.getMessage().getContent().get(0);
-                            // 思考过程
-                            if (contentBlock instanceof ThinkingBlock thinkingBlock) {
-                                String resp = thinkingBlock.getThinking();
-                                if (thinking) {
-                                    thinking = false;
-                                    resp = "(思考中：**" + resp;
-                                }
-                                return resp;
-                            } else if (contentBlock instanceof TextBlock textBlock){
-                                // 返回
-                                String resp = textBlock.getText();
-                                if (!thinking) {
-                                    thinking = true;
-                                    resp = "** 思考结束)" + resp;
-                                }
-                                return resp;
-                            }
-                        } else if (event.getType().equals(EventType.AGENT_RESULT) && event.isLast()) {
-                            // 保存记忆
-                            msgs.add(event.getMessage());
-                        }
-                        return null;
-                    }
-                })
-                .filter(StringUtils::isNotBlank);
-        return Flux.merge(sinks.asFlux(), result);
+//        Flux<String> result = ResponseUtils.responseAgentStream(managerAgent, out)
+//                .mapNotNull(new Function<Event, String>() {
+//                    boolean thinking = true;
+//                    @Override
+//                    public String apply(Event event) {
+//                        if (event.getType().equals(EventType.REASONING) && !event.isLast()) {
+//                            ContentBlock contentBlock = event.getMessage().getContent().get(0);
+//                            // 思考过程
+//                            if (contentBlock instanceof ThinkingBlock thinkingBlock) {
+//                                String resp = thinkingBlock.getThinking();
+//                                if (thinking) {
+//                                    thinking = false;
+//                                    resp = "(思考中：**" + resp;
+//                                }
+//                                return resp;
+//                            } else if (contentBlock instanceof TextBlock textBlock){
+//                                // 返回
+//                                String resp = textBlock.getText();
+//                                if (!thinking) {
+//                                    thinking = true;
+//                                    resp = "** 思考结束)" + resp;
+//                                }
+//                                return resp;
+//                            }
+//                        } else if (event.getType().equals(EventType.AGENT_RESULT) && event.isLast()) {
+//                            // 保存记忆
+//                            msgs.add(event.getMessage());
+//                        }
+//                        return null;
+//                    }
+//                })
+//                .filter(StringUtils::isNotBlank);
+
+
+        Msg call = ResponseUtils.call(managerAgent, prompt, ResponseSchema.class);
+        ResponseSchema responseSchema = call.getStructuredData(ResponseSchema.class);
+
+//        return Flux.merge(sinks.asFlux(), result);
+        return responseSchema;
     }
 
     /**

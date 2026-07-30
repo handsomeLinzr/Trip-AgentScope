@@ -11,6 +11,7 @@ import io.agentscope.core.agent.EventType;
 import io.agentscope.core.hook.Hook;
 import io.agentscope.core.message.Msg;
 import io.agentscope.core.message.TextBlock;
+import io.agentscope.core.model.StructuredOutputReminder;
 import io.agentscope.core.plan.PlanNotebook;
 import io.agentscope.core.tool.Toolkit;
 import jakarta.annotation.Resource;
@@ -72,6 +73,8 @@ public class ManagerAgentConfiguration {
                 .planNotebook(planNotebook)
                 .hook(hook)
                 .toolkit(toolkit)
+                // 结构化输出
+                .structuredOutputReminder(StructuredOutputReminder.PROMPT)
                 .build();
     }
 

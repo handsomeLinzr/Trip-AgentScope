@@ -30,6 +30,16 @@ public class ResponseUtils {
     }
 
     /**
+     * 同步调用返回结果
+     * @param agent
+     * @param prompt
+     * @return
+     */
+    public static Msg call(AgentBase agent, String prompt, Class<?> clazz) {
+        return agent.call(MsgUtils.buildText(prompt), clazz).block();
+    }
+
+    /**
      * agent流式响应
      * @param agent
      * @param prompt
