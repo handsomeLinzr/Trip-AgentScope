@@ -13,3 +13,6 @@ agentscope:
 #        description: 基于 AgentScope 的智能助手
     nacos:
       server-addr: 127.0.0.1:8848
+spring:
+  config:
+    import: optional:file:.env[.properties]

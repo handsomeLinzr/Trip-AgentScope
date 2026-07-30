@@ -38,12 +38,15 @@ public class RemoteAgentTool {
     @Resource
     private NacosUtils nacosUtils;
 
-    @Tool(description = "旅程规划专家，擅长根据起点和终点制定旅游行程的Agent")
-    public String callTripPannerAgent() throws NacosException {
+    @Tool(description = "旅程规划专家，擅长根据旅游的地区和时间，制定旅游行程的Agent")
+    public String callTripPannerAgent(
+            @ToolParam(name = "prompt", description = "旅游的地区和时间") String prompt
+    ) throws NacosException {
 
-        log.info("============");
-        log.info("工具方法：路线制定智能体...正在调用中");
-        log.info("============");
+        String newPrompt = "请根据给定的旅程地区和时间：**"+prompt+"**，指定出具体的旅游行程规划，包括景点、餐厅、住宿等";
+
+        log.info("======callTripPannerAgent 提示词：========》》{}", newPrompt);
+
 
         if (tripPannerAgent == null) {
             synchronized (tripPannerAgentLock) {
@@ -57,15 +60,8 @@ public class RemoteAgentTool {
             }
         }
 
-        // 创建 A2A Agent
-        A2aAgent agent = A2aAgent.builder()
-                .name("tripPlannerAgent")
-                .agentCardResolver(nacosUtils.getNacosCard())
-                .build();
-
         // 调用远程 Agent
-        Msg response = agent.call(Msg.builder().role(MsgRole.USER).content(List.of(TextBlock.builder().text("你好").build())).build()).block();
-        return null;
+        return ResponseUtils.call(tripPannerAgent, newPrompt);
     }
 
 
@@ -73,9 +69,9 @@ public class RemoteAgentTool {
     public String callRouterMakingAgent(
             @ToolParam(name = "prompt", description = "路线的起点和终点") String prompt) throws NacosException {
 
-        log.info("======callRouterMakingAgent 提示词：========》》{}", prompt);
-
         String newPrompt = "请根据给定的起点和终点：**"+prompt+"**，制定对应的路线规划";
+
+        log.info("======callRouterMakingAgent 提示词：========》》{}", newPrompt);
 
         if (routerMakingAgent == null) {
             synchronized (routerMakingAgentLock) {

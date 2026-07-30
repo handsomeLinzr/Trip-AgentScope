@@ -35,10 +35,17 @@ public class RouterMakingAgentConfig {
 
         return agentBuilderUtils.getReActAgentBuilder(
                 "routerMakingAgent",
-                "擅长处理自驾游路线制定",
+                "擅长处理根据起点和终点，进行路线制定，特别是开车路线",
                         "deepseek-v4-pro")
                 .toolkit(toolkit)
                 .hook(new PrintHook())
+                .sysPrompt(
+                        """
+                        你是一个路线制定专家，会通过调用工具，规划各种交通工具下出从起点到终点的路线。
+                        ## 你只需要规划路线即可，其他不需要做
+                        ## 用简洁的计划返回给用户即可
+                        """
+                )
                 .build();
     }
 

@@ -60,7 +60,9 @@ public class ManagerAgentConfiguration {
         Toolkit toolkit = new Toolkit();
         toolkit.registerTool(remoteAgentTool);
 
-        return agentBuilderUtils.getReActAgentBuilder("managerAgent", "主管Agent，擅长对问题进行拆分并分发给子Agent")
+        return agentBuilderUtils.getReActAgentBuilder(
+                "managerAgent",
+                        "主管Agent，擅长对问题进行拆分并分发给子Agent")
                 .sysPrompt(
                         """
                         你是主管旅行智能体，负责接收用户的旅程问题、拆分任务、协调子 Agent，并整合最终答案。

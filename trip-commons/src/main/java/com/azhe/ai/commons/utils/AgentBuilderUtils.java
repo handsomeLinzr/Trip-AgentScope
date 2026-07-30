@@ -37,7 +37,7 @@ public class AgentBuilderUtils {
     }
 
     public ReActAgent.Builder getReActAgentBuilder(String name, String description) {
-        return getReActAgentBuilder(name, description, "qwen3-max");
+        return getReActAgentBuilder(name, description, "glm-5");
     }
 
 }
